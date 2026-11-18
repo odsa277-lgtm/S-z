@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>So'z topish o'yini</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:system-ui,Arial,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;justify-content:center;padding:12px}
+  .app{width:100%;max-width:480px;display:flex;flex-direction:column;gap:10px;align-items:center}
+  header{width:100%;display:flex;justify-content:space-between;align-items:center;font-size:17px}
+  header small{color:#94a3b8;font-size:12px;display:block}
+  #slots{width:100%;display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;min-height:90px;background:#1e293b;border-radius:14px;padding:12px}
+  .word{display:flex;gap:3px}
+  .box{min-width:26px;height:28px;padding:0 3px;border-radius:6px;background:#0f172a;border:1px solid #334155;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;text-transform:uppercase}
+  .box.on{background:#22c55e;border-color:#22c55e;color:#fff}
+  .box.hint{background:#fbbf24;border-color:#fbbf24;color:#0f172a}
+  #toast{height:22px;color:#fbbf24;font-size:15px}
+  #cur{height:36px;font-size:24px;font-weight:700;text-transform:uppercase;letter-spacing:2px;background:#2563eb;padding:0 14px;border-radius:10px;display:flex;align-items:center;visibility:hidden}
+  #cur.show{visibility:visible}
+  #wheelBox{position:relative;width:290px;height:290px;border-radius:50%;background:#1e293b;touch-action:none;user-select:none;-webkit-user-select:none}
+  #wheel{position:absolute;inset:0;touch-action:none}
+  #trail{position:absolute;inset:0;pointer-events:none}
+  .tile{position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:#e2e8f0;color:#0f172a;font-weight:800;font-size:24px;text-transform:uppercase;display:flex;align-items:center;justify-content:center;pointer-events:auto}
+  .tile.two{font-size:19px}
+  .tile.sel{background:#22c55e;color:#fff}
+  .btns{display:flex;gap:10px}
+  button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 16px;background:#475569;color:#fff;font-weight:600}
+  button.go{background:#22c55e}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px}
+  .overlay .card{background:#1e293b;border-radius:14px;padding:22px;max-width:380px;text-align:center;line-height:1.5}
+  .overlay h2{margin-bottom:8px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>Bosqich <b id="lvl">1</b><small id="dictInfo"></small></div>
+    <div>🪙 <b id="coins">0</b></div>
+  </header>
+  <div id="slots"></div>
+  <div id="toast"></div>
+  <div id="cur"></div>
+  <div id="wheelBox"><svg id="trail" width="290" height="290"></svg><div id="wheel"></div></div>
+  <div class="btns">
+    <button id="shuf" type="button">🔀 Aralashtirish</button>
+    <button id="hint" type="button">💡 Maslahat (5 🪙)</button>
+  </div>
+</div>
+
+<div id="done" class="overlay hidden"><div class="card">
+  <h2 id="doneT"></h2><p id="doneP"></p><br><button class="go" id="nextBtn" type="button">Keyingi bosqich ▶</button>
+</div></div>
+
+<script>
+/* ===== O'zingizning katta lug'atingiz: shu fayl yoniga "words.txt" qo'ying (har qatorda bitta so'z) ===== */
+const BUILTIN_TEXT = `ota ona aka ayol aql asr ariq asal arzon alifbo anor archa asos ayiq avtobus ajoyib ahamiyat amal ariza atirgul adabiyot asfalt ayvon aylana asbob ahmoq alfavit anjir apelsin arava arpa askar astronom ashula avgust aprel adres aeroport
+bola bog' bahor baliq bayroq bozor bulut bosh barg bino bilim bank bolta buzoq burun baxt barmoq bahs baqlajon banan bedana beshik bilak binafsha bo'ri bo'yoq bodring bog'bon bobo buvi buyum burgut banka bezak belbog' bo'yin bo'sh baland baraka batareya bayram bulbul buloq burch boshliq bolalik
+daraxt daryo dasturxon dars deraza devor dala daftar do'st dehqon do'kon dengiz dori dunyo dalil dumaloq dahliz doira dutor duo dil dard diplom direktor devon
+eshik elak eshak echki eski eng el elchi ehson ekin ertak ellik elektr ekran eksport ertaga
+fasl fil fikr fan fabrika fayl film futbol farzand farishta firma fermer fevral fizika fosfor faol forma fidoyi farmon fursat fayz
+gul gilam gap guruch gilos gazeta guldasta gumbaz gugurt gavda gitara gaz gram gerb geologiya guruh gimnastika
+g'isht g'oz g'alaba g'alla g'oya g'uncha g'ildirak g'azal g'or g'alati g'azab g'ayrat g'urur g'oyib g'ovak g'o'za g'avvos
+hovli havo hayvon hafta hikoya hunar hosil hakam hamyon hid hurmat hovuz hokim hisob hujra hamshira hasharot hayot hikmat hunarmand halol hozir haykal hovuch
+ish it ip ilon ildiz ism ilm imtihon inson iqtisod ipak ishchi issiq iliq ibrat ijod ikki idish ichki imzo internet institut idora ilhom iqlim ishtirok ishonch iyun iyul iz
+jahon javob jon jang jazo jamoa jurnal jo'ja jo'xori jarayon jamiyat jadval jigar jihoz juda juma jun jumboq jonivor jasorat javon jasad
+kitob kuz kun kalit kema kapalak kiyim kulgi kuch kamalak ko'cha ko'l ko'z ko'ylak ko'prik kosa kasal kaptar kelajak kasb kishi kirpi kiprik kuchuk kitobxon kecha klass klub kompyuter konfet kabob karam kartoshka kamar kuyov kelin kechki kompas
+lola lagan latta lug'at laylak lazzat lavlagi limon lampa lashkar libos lavozim lahza laboratoriya laqab lochin lavha
+mushuk maktab muzqaymoq mashina mehmon meva mol muallim madaniyat mamlakat maydon makon marjon matn mehr mis mashq mahalla maqola maqol mato millat minora mosh mulk muhr muz mayiz muhabbat madad mahsulot mehnat meros motor muhandis
+non nok nur nafas narx nima namuna nasl nay nazm nutq nuqta nodir nihol nashr nonvoy nihoyat noyabr nafaqa noz nom nomzod
+osmon olma ot oyna oltin odam oyoq oq ovqat orzu oila oy olov otash orol ozod ochiq odob oshxona ombor omad ovoz oxir ohang ortiq ovchi oqshom oqim olim olxo'ri
+o'yin o'g'il o'rdak o'rmon o'qituvchi o'quvchi o'lka o'rik o'rtoq o'zbek o'q o't o'n o'ng o'zan o'simlik o'jar o'lcham o'nlik o'quv o'rnak o'tkir o'ta
+paxta pichoq poyezd parta pul pishloq polvon portfel pomidor parda parranda pista piyoz pilla poyabzal pochta pahlavon poytaxt payshanba pushti podshoh parvoz park parol pech po'lat po'stin po'choq
+qalam qor qush qo'l qo'y qizil qiz qum qoshiq qizg'aldoq qishloq qadam qalb qovun qovoq qurt qoplon qorovul qozon qo'ng'iroq qo'shiq qo'g'irchoq qadr qish qiyin qiymat qirol qirq qurol quyosh quloq qaymoq qulupnay qoida qora qarz qaldirg'och
+rasm rang rais radio reja rahbar raqam rohat ro'mol ro'yxat ro'za rezina rishta ruchka ruh rahmat ramka restoran robot roman rubob
+suv sut sol sabzi sovun soat sinf sariq sahar savol sayr savdo sotuvchi sayohat sirka sahifa sanoq sog'lik stol stul sumka sport samolyot sigir sichqon sovg'a suyak sulton savod sabr sahna
+shahar shamol shaftoli shokolad shisha shoh shirin sher shifokor shahzoda shaffof shim shogird shabnam sharq shaxmat sharf shovqin
+tog' tuz tuya tarvuz tovuq tuxum tosh teri tomosha taom tabiat tabassum telefon televizor tilla til tish tun tush tez tabib tuproq talaba tarix tarmoq tayyor tepa tarozi tomchi tuman turna tuyg'u toshbaqa tulki tikuv topshiriq tanaffus tafakkur teatr tennis texnika tarbiya tabrik tola toza
+uy uzum urug' usta ustoz uzuk uzoq uyqu uch ulkan umr undosh ustun umid urush usul uchqun uloq uzun ufq uka universitet
+vatan vaqt vazifa vazir vodiy vagon viloyat velosiped vijdon vazn vafo varaq vokzal vulqon vaza vitamin
+xalq xat xona xurmo xarita xotira xizmat xazina xo'roz xamir xushbo'y xavf xafa xato xabar xalat xursand xayol xalta xoch
+yo'l yer yulduz yoz yoshlik yaproq yoqut yurak yo'lbars yuz yigit yil yog'och yog' yonoq yarim yorug' yosh yomg'ir yaxshi yangi yozuv yelka yo'lak yoqa yoy yelkan yopiq yo'lchi yurt yoqimli
+zamin zavod zebra zamon zirak zeb zilzila zumrad zahar zamburug' zarb zargar zilol ziyofat zot zulmat zarur zamonaviy zich zo'r zukko
+choy chiroq chumoli chopon chelak chiroyli chaqmoq chang chorak charm chilon chiqish chinor chivin chegara cho'l cho'ntak chuqur chaman chaqaloq chiziq chekka chorva cho'chqa chilim chavandoz chilla
+soy boy toy loy soz tol tor rol dor kul qul ko'k ko'r o'rin kam kim kir nam non nor qir ora mum bor yor son don qon ton tan xon tom sir sim lab ayb
+ari ayg'ir quyon maymun kaltakesak qurbaqa pashsha ninachi qo'ng'iz qirg'iy boyqush chumchuq qarg'a to'ti kurka qo'zi kalamush qunduz bug'u kiyik jayron arslon maral
+olcha malina yong'oq bodom sarimsoq qalampir turp ismaloq ko'kat patir somsa chuchvara manti palov sho'rva lag'mon mastava norin qatiq go'sht shakar qahva sharbat kompot shirinlik holva
+dovul bo'ron sel jilg'a qirg'oq sohil tepalik shox terak tol qayrag'och
+tom pol shift zina darvoza supa mebel kursi karavot shkaf yostiq ko'rpa sochiq sanchqi tovoq piyola choynak tandir o'choq sham qulf qaychi yelim chizg'ich o'chirg'ich paypoq qo'lqop shlyapa do'ppi tugma igna
+soch peshona qosh og'iz lab tirnoq ko'krak qorin bel tizza tovon qon soqol mo'ylov
+opa singil amaki tog'a xola amma nevara qo'shni chol kampir haydovchi quruvchi cho'pon savdogar oshpaz tikuvchi sartarosh
+katta kichik qisqa past keng tor yengil og'ir sovuq yomon xunuk sekin nordon achchiq iflos to'liq qattiq yumshoq quruq ho'l semiz ozg'in aqlli dono botir mard sodiq mehribon baxtli
+yashil ko'k kulrang jigarrang zangori
+bir to'rt besh olti yetti sakkiz to'qqiz yigirma o'ttiz ming million
+tong kech peshin bugun daqiqa soniya dushanba seshanba chorshanba shanba yakshanba yanvar mart may sentyabr oktyabr dekabr
+baho kutubxona kasalxona dorixona bog'cha stadion mehmonxona masjid madrasa saroy sayyora koinot kosmos
+toshkent buxoro xiva farg'ona andijon namangan qarshi termiz nukus urganch navoiy jizzax guliston
+do'stlik tinchlik sevgi so'z ibora she'r doston kuy raqs kurash voleybol basketbol suzish yugurish
+taksi yuk yo'lovchi bilet manzil safar sayt dastur klaviatura sichqoncha
+tosh qush gul sut suv tuz nur yer kun tun yil oy
+`;
+
+/*LOGIC*/
+const CYR={'а':'a','б':'b','в':'v','г':'g','д':'d','ж':'j','з':'z','и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'s','ч':'ch','ш':'sh','ъ':"'",'ь':'','э':'e','ю':'yu','я':'ya','ў':"o'",'қ':'q','ғ':"g'",'ҳ':'h','ё':'yo'};
+function cyr2lat(w){
+  if(!/[\u0400-\u04FF]/.test(w)) return w;
+  let out='';
+  for(let i=0;i<w.length;i++){
+    const c=w[i];
+    if(c==='е'){ out+=(i===0||'aeiou'.includes(out[out.length-1]))?'ye':'e'; }
+    else out+=(CYR[c]!==undefined?CYR[c]:c);
+  }
+  return out;
+}
+const normW=w=>w.toLowerCase().replace(/ö/g,"o'").replace(/ğ/g,"g'").replace(/ç/g,"ch").replace(/ş/g,"sh").replace(/ı/g,"i").replace(/[‘’ʻʼ`´]/g,"'").trim();
+function toks(w){const t=[];for(let i=0;i<w.length;){const two=w.substr(i,2);if(two==="g'"||two==="o'"||two==="sh"||two==="ch"){t.push(two);i+=2;}else{t.push(w[i]);i++;}}return t;}
+function okWord(w){
+  if(w.length<2||w.length>14) return false;
+  if(!/^[a-z']+$/.test(w)) return false;
+  if(/(^|[^go])'/.test(w)||/''/.test(w)) return false;
+  if(/w/.test(w)||/c(?!h)/.test(w)) return false;
+  return true;
+}
+function parseWords(text){
+  const out=new Set();
+  for(const line of text.split(/\r?\n/)){
+    let w=line.trim().split(/\s+/)[0]; if(!w) continue;
+    w=w.split('/')[0];
+    w=normW(cyr2lat(w.toLowerCase()));
+    if(okWord(w)) out.add(w);
+  }
+  return [...out];
+}
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(a,r){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function mkIndex(words){
+  const list=words.map(w=>{const t=toks(w),m={};t.forEach(x=>m[x]=(m[x]||0)+1);return{w,n:t.length,m};});
+  const byLen={};list.forEach(o=>(byLen[o.n]=byLen[o.n]||[]).push(o));
+  return{list,set:new Set(words),byLen,size:words.length};
+}
+function fits(a,bm){for(const k in a.m){if((bm[k]||0)<a.m[k])return false;}return true;}
+function lenFor(k){return k<=5?4:k<=20?5:k<=50?6:(k%2?7:6);}
+function formableOf(ix,b){return ix.list.filter(x=>x.n>=3&&x.n<=b.n&&fits(x,b.m));}
+function buildLevel(ix,b,k,f){
+  const r=rng(k*104729+7);
+  const rest=shuffle(f.filter(x=>x.w!==b.w),r).sort((x,y)=>y.n-x.n).slice(0,11).map(x=>x.w);
+  const targets=[b.w,...rest].sort((x,y)=>toks(x).length-toks(y).length||(x<y?-1:1));
+  return{base:b.w,tiles:toks(b.w),targets};
+}
+function genLevel(ix,k,used){
+  const r=rng(k*7919+13);
+  const big=ix.size>5000;
+  const min=big?(k<=5?3:5):3;
+  for(const L of [lenFor(k),5,6,4,7]){
+    const pool=ix.byLen[L]; if(!pool||!pool.length) continue;
+    const tries=big?300:pool.length*3;
+    for(let a=0;a<tries;a++){
+      const b=pool[Math.floor(r()*pool.length)];
+      if(used.has(b.w)) continue;
+      const f=formableOf(ix,b);
+      if(f.length<min) continue;
+      return buildLevel(ix,b,k,f);
+    }
+  }
+  return null;
+}
+/*END LOGIC*/
+
+/* ===== O'yin ===== */
+const $=id=>document.getElementById(id);
+const KEY='uzSozOyin1';
+let IX,CUR=null;
+let ST={level:1,coins:20,found:[],bonus:[],hints:{},bases:[]};
+let TS=[],POS=[],sel=[],dragging=false,toastT;
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ST));}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.level)ST=Object.assign(ST,s);}catch(e){}}
+function toast(t){$('toast').textContent=t;clearTimeout(toastT);toastT=setTimeout(()=>$('toast').textContent='',1600);}
+function getLevel(k){
+  const bw=ST.bases[k-1];
+  if(bw){
+    const b=(IX.byLen[toks(bw).length]||[]).find(o=>o.w===bw);
+    if(b) return buildLevel(IX,b,k,formableOf(IX,b));
+  }
+  const g=genLevel(IX,k,new Set(ST.bases.filter(Boolean)));
+  if(g){ST.bases[k-1]=g.base;save();}
+  return g;
+}
+function renderTop(){$('lvl').textContent=ST.level;$('coins').textContent=ST.coins;}
+function isFound(w){return ST.found.includes(w)||(ST.hints[w]||0)>=toks(w).length;}
+
+function renderSlots(){
+  const L=CUR,box=$('slots');box.innerHTML='';
+  L.targets.forEach(w=>{
+    const row=document.createElement('div');row.className='word';
+    const t=toks(w),f=isFound(w),h=ST.hints[w]||0;
+    t.forEach((x,i)=>{
+      const b=document.createElement('div');b.className='box';
+      if(f){b.classList.add('on');b.textContent=x;}
+      else if(i<h){b.classList.add('hint');b.textContent=x;}
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+  });
+}
+function buildWheel(reshuffle){
+  const L=CUR,wheel=$('wheel');
+  if(reshuffle||!TS.length) TS=shuffle(L.tiles,Math.random);
+  wheel.innerHTML='';POS=[];sel=[];
+  const n=TS.length,C=145,R=145-48;
+  TS.forEach((x,i)=>{
+    const a=2*Math.PI*i/n-Math.PI/2,px=C+R*Math.cos(a),py=C+R*Math.sin(a);
+    POS.push([px,py]);
+    const d=document.createElement('div');d.className='tile'+(x.length>1?' two':'');d.dataset.i=i;d.textContent=x;
+    d.style.left=px+'px';d.style.top=py+'px';wheel.appendChild(d);
+  });
+  draw();
+}
+function draw(){
+  document.querySelectorAll('.tile').forEach(t=>t.classList.toggle('sel',sel.includes(+t.dataset.i)));
+  const w=sel.map(i=>TS[i]).join('');
+  $('cur').textContent=w;$('cur').classList.toggle('show',sel.length>0);
+  $('trail').innerHTML=sel.length>1?'<polyline fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".8" points="'+sel.map(i=>POS[i].join(',')).join(' ')+'"/>':'';
+}
+function startLevel(){
+  TS=[];$('done').classList.add('hidden');renderTop();renderSlots();buildWheel(true);
+  $('dictInfo').textContent="Lug'at: "+IX.size+" ta so'z";
+}
+function allDone(){return CUR.targets.every(isFound);}
+
+function submit(w,len){
+  if(len<3){if(len>1)toast('Kamida 3 ta harf');return;}
+  const L=CUR;
+  if(L.targets.includes(w)){
+    if(isFound(w)){toast("Bu so'z topilgan");return;}
+    ST.found.push(w);toast('✔ To\'g\'ri!');renderSlots();save();
+    if(allDone())levelDone();
+  }else if(IX.set.has(w)){
+    if(ST.bonus.includes(w)){toast("Bonus so'z topilgan");return;}
+    ST.bonus.push(w);ST.coins+=1;toast("✨ Bonus so'z! +1 🪙");save();renderTop();
+  }else toast("Bunday so'z yo'q");
+}
+function levelDone(){
+  ST.coins+=5;save();renderTop();
+  $('doneT').textContent='Bosqich '+ST.level+' yakunlandi! 🎉';
+  $('doneP').textContent='+5 🪙 oldingiz. Bonus so\'zlar: '+ST.bonus.length;
+  $('nextBtn').classList.remove('hidden');$('done').classList.remove('hidden');
+}
+$('nextBtn').onclick=()=>{
+  const prev=CUR;
+  ST.level++;ST.found=[];ST.bonus=[];ST.hints={};
+  CUR=getLevel(ST.level);
+  if(!CUR){
+    ST.level--;CUR=prev;save();
+    $('doneT').textContent='Tabriklaymiz! 🏆';
+    $('doneP').textContent="Lug'atdagi barcha bosqichlarni tugatdingiz. Ko'proq bosqich uchun katta lug'at (words.txt) qo'shing.";
+    $('nextBtn').classList.add('hidden');return;
+  }
+  save();startLevel();
+};
+$('shuf').onclick=()=>buildWheel(true);
+$('hint').onclick=()=>{
+  if(ST.coins<5){toast('Tanga yetarli emas');return;}
+  const L=CUR,left=L.targets.filter(w=>!isFound(w));
+  if(!left.length)return;
+  const w=left[Math.floor(Math.random()*left.length)];
+  ST.hints[w]=(ST.hints[w]||0)+1;ST.coins-=5;save();renderTop();renderSlots();
+  if(allDone())levelDone();
+};
+
+const wheelEl=$('wheelBox');
+function pick(e){
+  const el=document.elementFromPoint(e.clientX,e.clientY),t=el&&el.closest&&el.closest('.tile');
+  if(!t)return;const i=+t.dataset.i;
+  if(sel[sel.length-1]===i)return;
+  if(sel.length>1&&sel[sel.length-2]===i)sel.pop();
+  else if(!sel.includes(i))sel.push(i);
+  draw();
+}
+function finish(){
+  if(!dragging)return;dragging=false;
+  const w=sel.map(i=>TS[i]).join(''),len=sel.length;
+  sel=[];draw();submit(w,len);
+}
+wheelEl.addEventListener('pointerdown',e=>{e.preventDefault();try{wheelEl.setPointerCapture(e.pointerId);}catch(x){}dragging=true;sel=[];pick(e);});
+wheelEl.addEventListener('pointermove',e=>{if(dragging)pick(e);});
+wheelEl.addEventListener('pointerup',finish);
+wheelEl.addEventListener('pointercancel',finish);
+
+async function init(){
+  load();
+  let words=parseWords(BUILTIN_TEXT.split(/\s+/).join('\n'));
+  try{
+    const r=await fetch('words.txt',{cache:'no-cache'});
+    if(r.ok){const w=parseWords(await r.text());if(w.length>500)words=[...new Set([...words,...w])];}
+  }catch(e){}
+  IX=mkIndex(words);
+  CUR=getLevel(ST.level);
+  if(!CUR){ST.level=Math.max(1,ST.bases.filter(Boolean).length);CUR=getLevel(ST.level);}
+  if(!CUR){document.body.textContent="Lug'at juda kichik.";return;}
+  ST.found=ST.found.filter(w=>CUR.targets.includes(w));
+  startLevel();
+  if(allDone())levelDone();
+}
+init();
+</script>
+</body>
+</html>
